@@ -1,0 +1,22 @@
+name: update-brew-formula
+author: yodamad
+description: Update a brew formula with different targets
+inputs:
+  file:
+    description: 'Formula file to update'
+  owner:
+    description: 'Owner or organization hosting repository'
+  repo:
+    description: 'Repository containing file to update'
+  version:
+    description: 'New version for formula'
+  field:
+    description: 'Field to update with sha256 value'
+  sha256:
+    description: 'SHA256 value for field'
+  token:
+    description: 'GitHub token to access repository'
+    default: ${{ github.token }}
+runs:
+  using: docker
+  image: Dockerfile
