@@ -12,8 +12,7 @@ env \
   'INPUT_OWNER=<owner_or_organization>' \
   'INPUT_REPO=<repository>' \
   'INPUT_VERSION=<new_version>' \
-  'INPUT_SHA256=<your_sha256>' \
-  'INPUT_FIELD=<your_field>' \
+  'INPUT_FIELDS=<json_input>' \
   'INPUT_TOKEN=<your_token>' \
   go run main.go
 ```

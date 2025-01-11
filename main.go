@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -22,14 +23,13 @@ func main() {
 	owner := githubactions.GetInput("owner")       // "yodamad"
 	homebrewRepo := githubactions.GetInput("repo") // "homebrew-tools"
 	version := githubactions.GetInput("version")
-	sha := githubactions.GetInput("sha256")
-	field := githubactions.GetInput("field")
+	fields := githubactions.GetInput("fields")
 	token := githubactions.GetInput("token")
 
-	updateFormula(formulaFile, owner, homebrewRepo, version, sha, field, token)
+	updateFormula(formulaFile, owner, homebrewRepo, version, fields, token)
 }
 
-func updateFormula(formulaFile, owner, homebrewRepo, version, sha, field, token string) {
+func updateFormula(formulaFile, owner, homebrewRepo, version, fields, token string) {
 	client := github.NewClient(nil).WithAuthToken(token)
 	ctx := context.Background()
 	workdir := "/tmp/foo"
@@ -84,11 +84,13 @@ func updateFormula(formulaFile, owner, homebrewRepo, version, sha, field, token 
 	input, err := os.ReadFile(filePath)
 	lines := strings.Split(string(input), "\n")
 
+	outputs := getValues(fields)
+
 	for i, line := range lines {
 		if strings.Contains(line, "version") {
 			lines[i] = versionRegex.ReplaceAllString(line, version)
 		}
-		if strings.Contains(line, field) {
+		if sha := getValue(line, outputs); sha != "" {
 			lines[i] = shaRegex.ReplaceAllString(line, "\""+sha+"\"")
 		}
 	}
@@ -125,6 +127,7 @@ func updateFormula(formulaFile, owner, homebrewRepo, version, sha, field, token 
 	})
 	if err != nil {
 		log.Fatalf("Cannot push : %v", err)
+		return
 	}
 
 	pr := &github.NewPullRequest{
@@ -137,5 +140,42 @@ func updateFormula(formulaFile, owner, homebrewRepo, version, sha, field, token 
 	_, _, err = client.PullRequests.Create(ctx, owner, homebrewRepo, pr)
 	if err != nil {
 		log.Fatalf("Cannot create Pull Request : %v", err)
+		return
 	}
+}
+
+func getValues(fields string) map[string]string {
+	// a map container to decode the JSON structure into
+	c := make(map[string]json.RawMessage)
+	// unmarschal JSON
+	err := json.Unmarshal([]byte(fields), &c)
+
+	// panic on error
+	if err != nil {
+		log.Fatalf("Cannot unmarshal fields value : %v", err)
+		return nil
+	}
+	all := make(map[string]string)
+
+	// iteration counter
+	i := 0
+
+	// copy c's keys into k
+	for s := range c {
+		data, _ := c[s].MarshalJSON()
+		pp := strings.TrimSuffix(strings.TrimPrefix(string(data), "\""), "\"")
+		pps := strings.Split(pp, "-")
+		all[pps[0]] = pps[1]
+		i++
+	}
+	return all
+}
+
+func getValue(line string, mapping map[string]string) string {
+	for k := range mapping {
+		if strings.Contains(line, k) {
+			return mapping[k]
+		}
+	}
+	return ""
 }
