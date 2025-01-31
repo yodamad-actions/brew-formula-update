@@ -25,11 +25,12 @@ func main() {
 	version := githubactions.GetInput("version")
 	fields := githubactions.GetInput("fields")
 	token := githubactions.GetInput("token")
+	autoMerge := githubactions.GetInput("auto_merge")
 
-	updateFormula(formulaFile, owner, homebrewRepo, version, fields, token)
+	updateFormula(formulaFile, owner, homebrewRepo, version, fields, token, autoMerge)
 }
 
-func updateFormula(formulaFile, owner, homebrewRepo, version, fields, token string) {
+func updateFormula(formulaFile, owner, homebrewRepo, version, fields, token, autoMerge string) {
 	client := github.NewClient(nil).WithAuthToken(token)
 	ctx := context.Background()
 	workdir := "/tmp/foo"
@@ -137,10 +138,18 @@ func updateFormula(formulaFile, owner, homebrewRepo, version, fields, token stri
 		Body:                github.Ptr("Update " + formulaFile + " formula version and sha256"),
 		MaintainerCanModify: github.Ptr(true),
 	}
-	_, _, err = client.PullRequests.Create(ctx, owner, homebrewRepo, pr)
+	prCreated, _, err := client.PullRequests.Create(ctx, owner, homebrewRepo, pr)
 	if err != nil {
 		log.Fatalf("Cannot create Pull Request : %v", err)
 		return
+	}
+
+	if autoMerge == "true" {
+		_, _, err = client.PullRequests.Merge(ctx, owner, homebrewRepo, prCreated.GetNumber(), "Merging version "+version, nil)
+		if err != nil {
+			log.Fatalf("Cannot merge Pull Request : %v", err)
+			return
+		}
 	}
 }
 
