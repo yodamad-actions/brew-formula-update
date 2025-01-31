@@ -57,6 +57,7 @@ In your GitHub actions workflow, you need to add this job
           version: ${{ github.ref_name }}
           fields: ${{ toJSON(needs.build_release.outputs) }}
           token: ${{ secrets.BREW_TOKEN }}
+          auto_merge: true
 ```
 
 Inputs required to use the action
@@ -69,6 +70,7 @@ Inputs required to use the action
 | version  | New version for formula              | 1.0.0 |
 | fields   | Field to update with sha256 value    | JSON output (see below) |
 | token    | GitHub token to access repository    | A GitHub token with write access to the `repo` |
+ | auto_merge | Automatically merge pull request    | true |
 
 ## How to build `fields` input
 
@@ -138,5 +140,6 @@ env \
   'INPUT_VERSION=<new_version>' \
   'INPUT_FIELDS=<json_input>' \
   'INPUT_TOKEN=<your_token>' \
+  'INPUT_AUTO_MERGE=true' \
   go run main.go
 ```
