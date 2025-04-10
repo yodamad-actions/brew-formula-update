@@ -17,6 +17,9 @@ inputs:
   token:
     description: 'GitHub token to access repository'
     default: ${{ github.token }}
+  auto-merge:
+    description: 'Automatically merge pull request'
+    default: 'true'
 runs:
   using: docker
   image: Dockerfile
